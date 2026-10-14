@@ -1,0 +1,37 @@
+name: Set up nibrun CLI
+description: Install and cache a selected release of the nib CLI.
+inputs:
+  version:
+    description: Exact CLI release tag, such as cli-v2026.10.13-1.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Prepare installation directory
+      id: installation
+      shell: bash
+      env:
+        NIB_VERSION: ${{ inputs.version }}
+      run: |
+        if [[ ! "$NIB_VERSION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ || "$NIB_VERSION" == latest ]]; then
+          echo '::error::version must be an explicit CLI release tag.'
+          exit 1
+        fi
+        printf 'directory=%s\n' "$RUNNER_TOOL_CACHE/nib/$NIB_VERSION/$RUNNER_ARCH" >> "$GITHUB_OUTPUT"
+
+    - name: Cache CLI
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.installation.outputs.directory }}
+        key: nib-${{ runner.os }}-${{ runner.arch }}-${{ inputs.version }}
+
+    - name: Install CLI
+      shell: bash
+      env:
+        NIB_VERSION: ${{ inputs.version }}
+        NIB_INSTALL_DIR: ${{ steps.installation.outputs.directory }}
+      run: |
+        set -euo pipefail
+        export PATH="$NIB_INSTALL_DIR:$PATH"
+        curl -fsSL https://nibrun.com/install.sh | sh
+        printf '%s\n' "$NIB_INSTALL_DIR" >> "$GITHUB_PATH"
