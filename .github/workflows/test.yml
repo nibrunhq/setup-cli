@@ -41,6 +41,16 @@ jobs:
       - name: Verify CLI remains available
         run: test "$(nib --version)" = "${CLI_VERSION#cli-v}"
 
+      - name: Set up latest CLI
+        if: matrix.runner == 'ubuntu-latest'
+        uses: ./
+
+      - name: Verify latest CLI is available
+        if: matrix.runner == 'ubuntu-latest'
+        run: |
+          nib --version
+          nib --help > /dev/null
+
   install-passed:
     if: always()
     name: install:required

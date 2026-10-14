@@ -2,8 +2,9 @@ name: Set up nibrun CLI
 description: Install and cache a selected release of the nib CLI.
 inputs:
   version:
-    description: Exact CLI release tag, such as cli-v2026.10.13-1.
-    required: true
+    description: CLI release tag, such as cli-v2026.10.13-1, or latest.
+    required: false
+    default: latest
 runs:
   using: composite
   steps:
@@ -12,14 +13,11 @@ runs:
       shell: bash
       env:
         NIB_VERSION: ${{ inputs.version }}
-      run: |
-        if [[ ! "$NIB_VERSION" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ || "$NIB_VERSION" == latest ]]; then
-          echo '::error::version must be an explicit CLI release tag.'
-          exit 1
-        fi
-        printf 'directory=%s\n' "$RUNNER_TOOL_CACHE/nib/$NIB_VERSION/$RUNNER_ARCH" >> "$GITHUB_OUTPUT"
+      run: printf 'directory=%s\n' "$RUNNER_TOOL_CACHE/nib/${NIB_VERSION:-latest}/$RUNNER_ARCH" >> "$GITHUB_OUTPUT"
 
     - name: Cache CLI
+      id: cache
+      if: inputs.version != 'latest' && inputs.version != ''
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ steps.installation.outputs.directory }}
@@ -30,8 +28,14 @@ runs:
       env:
         NIB_VERSION: ${{ inputs.version }}
         NIB_INSTALL_DIR: ${{ steps.installation.outputs.directory }}
+        CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
       run: |
         set -euo pipefail
         export PATH="$NIB_INSTALL_DIR:$PATH"
-        curl -fsSL https://nibrun.com/install.sh | sh
+        if [[ "$CACHE_HIT" != true || ! -x "$NIB_INSTALL_DIR/nib" ]]; then
+          if [[ "$NIB_VERSION" == latest || -z "$NIB_VERSION" ]]; then
+            unset NIB_VERSION
+          fi
+          curl -fsSL https://raw.githubusercontent.com/ilbertt/nibrun/main/packages/cli/install.sh | sh
+        fi
         printf '%s\n' "$NIB_INSTALL_DIR" >> "$GITHUB_PATH"
