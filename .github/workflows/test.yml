@@ -1,0 +1,63 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CLI_VERSION: cli-v2026.10.13-1
+
+jobs:
+  install:
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up CLI
+        uses: ./
+        with:
+          version: ${{ env.CLI_VERSION }}
+
+      - name: Verify selected CLI is on PATH
+        run: |
+          test "$(nib --version)" = "${CLI_VERSION#cli-v}"
+          nib --help > /dev/null
+
+      - name: Reuse existing installation
+        uses: ./
+        with:
+          version: ${{ env.CLI_VERSION }}
+
+      - name: Verify CLI remains available
+        run: test "$(nib --version)" = "${CLI_VERSION#cli-v}"
+
+      - name: Set up latest CLI
+        if: matrix.runner == 'ubuntu-latest'
+        uses: ./
+
+      - name: Verify latest CLI is available
+        if: matrix.runner == 'ubuntu-latest'
+        run: |
+          nib --version
+          nib --help > /dev/null
+
+  install-passed:
+    if: always()
+    name: install:required
+    needs: [install]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all installations passed
+        env:
+          INSTALL_RESULT: ${{ needs.install.result }}
+        run: test "$INSTALL_RESULT" = success

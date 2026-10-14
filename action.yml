@@ -1,0 +1,41 @@
+name: Set up nibrun CLI
+description: Install and cache a selected release of the nib CLI.
+inputs:
+  version:
+    description: CLI version (2026.10.13-1, v2026.10.13-1 or cli-v2026.10.13-1), or latest.
+    required: false
+    default: latest
+runs:
+  using: composite
+  steps:
+    - name: Prepare installation directory
+      id: installation
+      shell: bash
+      env:
+        NIB_VERSION: ${{ inputs.version }}
+      run: printf 'directory=%s\n' "$RUNNER_TOOL_CACHE/nib/${NIB_VERSION:-latest}/$RUNNER_ARCH" >> "$GITHUB_OUTPUT"
+
+    - name: Cache CLI
+      id: cache
+      if: inputs.version != 'latest' && inputs.version != ''
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.installation.outputs.directory }}
+        key: nib-${{ runner.os }}-${{ runner.arch }}-${{ inputs.version }}
+
+    - name: Install CLI
+      shell: bash
+      env:
+        NIB_VERSION: ${{ inputs.version }}
+        NIB_INSTALL_DIR: ${{ steps.installation.outputs.directory }}
+        CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+      run: |
+        set -euo pipefail
+        export PATH="$NIB_INSTALL_DIR:$PATH"
+        if [[ "$CACHE_HIT" != true || ! -x "$NIB_INSTALL_DIR/nib" ]]; then
+          if [[ "$NIB_VERSION" == latest || -z "$NIB_VERSION" ]]; then
+            unset NIB_VERSION
+          fi
+          curl -fsSL https://raw.githubusercontent.com/ilbertt/nibrun/main/packages/cli/install.sh | sh
+        fi
+        printf '%s\n' "$NIB_INSTALL_DIR" >> "$GITHUB_PATH"
