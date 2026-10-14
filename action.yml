@@ -2,7 +2,7 @@ name: Set up nibrun CLI
 description: Install and cache a selected release of the nib CLI.
 inputs:
   version:
-    description: CLI release tag, such as cli-v2026.10.13-1, or latest.
+    description: CLI version (2026.10.13-1, v2026.10.13-1 or cli-v2026.10.13-1), or latest.
     required: false
     default: latest
 runs:
