@@ -7,13 +7,13 @@ jobs:
   example:
     runs-on: ubuntu-latest
     steps:
-      - uses: nibrunhq/setup-cli@<commit-sha>
+      - uses: nibrunhq/setup-cli@v1
         with:
           version: 2026.10.13-1
       - run: nib --version
 ```
 
-Replace `<commit-sha>` with a reviewed commit from this repository.
+`@v1` follows updates in the Action's v1 release series.
 
 | Input | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
