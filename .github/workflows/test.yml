@@ -40,3 +40,14 @@ jobs:
 
       - name: Verify CLI remains available
         run: test "$(nib --version)" = "${CLI_VERSION#cli-v}"
+
+  install-passed:
+    if: always()
+    name: install:required
+    needs: [install]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all installations passed
+        env:
+          INSTALL_RESULT: ${{ needs.install.result }}
+        run: test "$INSTALL_RESULT" = success
